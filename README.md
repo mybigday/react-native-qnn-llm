@@ -8,7 +8,27 @@ Qualcomm lib Genie binding for React Native
 npm install react-native-qnn-llm
 ```
 
-### Add proguard
+### Android Setup
+
+#### Download and setup env
+
+1. Download SDK from [here](https://www.qualcomm.com/developer/software/qualcomm-ai-engine-direct-sdk)
+2. Setup env `source path/to/QNN/SDK/bin/envsetup.sh`
+
+#### QNN libs
+
+Add QNN libs dependency into `android/app/build.gradle`
+
+```diff
+dependencies {
++   implementation "com.qualcomm.qti:qnn-runtime:latest.integration@aar"
+```
+
+Or set `useQnnSdkLib=true` in `android/gradle.properties`
+
+Notes: If you use dependency, the version should match QNN SDK version
+
+#### Proguard
 
 ```diff
 + -keep class com.qnnllm.** { *; }

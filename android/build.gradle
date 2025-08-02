@@ -23,6 +23,10 @@ def isNewArchitectureEnabled() {
   return rootProject.hasProperty("newArchEnabled") && rootProject.getProperty("newArchEnabled") == "true"
 }
 
+def isQnnSdkLibEnabled() {
+  return rootProject.hasProperty("useQnnSdkLib") && rootProject.getProperty("useQnnSdkLib") == "true"
+}
+
 apply plugin: "com.android.library"
 apply plugin: "kotlin-android"
 
@@ -68,6 +72,9 @@ android {
     externalNativeBuild {
       cmake {
         cppFlags "-O2 -frtti -fexceptions -Wall -fstack-protector-all"
+        if (isQnnSdkLibEnabled()) {
+          arguments "-DUSE_QNN_SDK_LIB=ON"
+        }
         abiFilters (*reactNativeArchitectures())
       }
     }
