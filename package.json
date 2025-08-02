@@ -44,8 +44,11 @@
   },
   "keywords": [
     "react-native",
-    "ios",
-    "android"
+    "android",
+    "qualcomm",
+    "npu",
+    "llm",
+    "llama"
   ],
   "repository": {
     "type": "git",
