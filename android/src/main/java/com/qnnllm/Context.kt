@@ -2,15 +2,16 @@ package com.qnnllm
 
 import android.os.Build
 import android.util.Log
+import android.content.Context as AndroidContext
 
-class Context constructor(libPath: String, config: String) {
+class Context constructor(context: AndroidContext, config: String) {
+  private val mLibPath: String = context.applicationInfo.nativeLibraryDir
   private val mContextPtr: Long
 
   abstract class Callback {
     abstract fun onResponse(response: String, sentenceCode: Int)
   }
 
-  external fun getVersion(): String
   external fun create(libPath: String, config: String): Long
   external fun unpack(bundlePath: String, unpackDir: String): String
   external fun free(contextPtr: Long)
@@ -23,14 +24,28 @@ class Context constructor(libPath: String, config: String) {
   external fun abort(contextPtr: Long)
 
   init {
-    if (!Build.SUPPORTED_ABIS.contains("arm64-v8a")) {
-      Log.e("QnnLlm", "Not supported for ${Build.SUPPORTED_ABIS}")
-      throw RuntimeException("QNN LLM is not supported on this device")
-    } else {
-      System.loadLibrary("qnn-llm")
+    this.mContextPtr = create(mLibPath, config)
+  }
+
+  companion object {
+    fun load() {
+      if (!Build.SUPPORTED_ABIS.contains("arm64-v8a")) {
+        Log.e("QnnLlm", "Not supported for ${Build.SUPPORTED_ABIS}")
+        throw RuntimeException("QNN LLM is not supported on this device")
+      } else {
+        System.loadLibrary("qnn-llm")
+      }
     }
-    Log.i("QnnLlm", "API Version: v${getVersion()}")
-    this.mContextPtr = create(libPath, config)
+
+    fun create(context: AndroidContext, config: String): Context {
+      load()
+      return Context(context, config)
+    }
+
+    fun unpack(bundlePath: String, unpackDir: String): String {
+      load()
+      return unpack(bundlePath, unpackDir)
+    }
   }
 
   fun process(input: String) {

@@ -1,15 +1,10 @@
 #include "context.h"
 #include "unpack.h"
+#include "log.h"
 #include <jni.h>
 #include <fstream>
 
 // package com.qnnllm
-
-// Context::getVersion(): String
-extern "C" JNIEXPORT jstring JNICALL Java_com_qnnllm_Context_getVersion(JNIEnv *env,
-                                                                              jclass jthiz) {
-  return env->NewStringUTF(qnnllm::Context::version().c_str());
-}
 
 // Context::create(config: String): Context*
 extern "C" JNIEXPORT jlong JNICALL Java_com_qnnllm_Context_create(JNIEnv *env, jclass jthiz,
@@ -25,6 +20,7 @@ extern "C" JNIEXPORT jlong JNICALL Java_com_qnnllm_Context_create(JNIEnv *env, j
            "%s;/system/lib/rfsa/adsp;/system/vendor/lib/rfsa/adsp;/dsp", lib_path_str);
   setenv("ADSP_LIBRARY_PATH", adsp_library_path, 1);
   env->ReleaseStringUTFChars(lib_path, lib_path_str);
+  LOGI("QNN libGenie version: %s", qnnllm::Context::version().c_str());
   const char *config_str = env->GetStringUTFChars(jconfig, nullptr);
   Context *ctx = NULL;
   try {

@@ -32,144 +32,144 @@ class QnnLlmModule internal constructor(context: ReactApplicationContext) :
   }
 
   @ReactMethod
-  fun create(config: String, promise: Promise) {
+  override fun create(config: String, promise: Promise) {
     Thread {
       try {
-        val context = Context(config)
+        val context = Context(reactApplicationContext, config)
         val id = mContextId.incrementAndGet()
         mContexts[id] = context
         promise.resolve(id)
       } catch (e: Exception) {
-        promise.reject(e)
+        promise.reject("E_CREATE_CONTEXT", e.message, e)
       }
     }.start()
   }
 
   @ReactMethod
-  fun unpack(bundlePath: String, unpackDir: String, promise: Promise) {
+  override fun unpack(bundlePath: String, unpackDir: String, promise: Promise) {
     Thread {
       try {
         Context.unpack(bundlePath, unpackDir)
         promise.resolve(null)
       } catch (e: Exception) {
-        promise.reject(e)
+        promise.reject("E_UNPACK", e.message, e)
       }
     }.start()
   }
 
   @ReactMethod
-  fun free(id: Long, promise: Promise) {
+  override fun free(id: Double, promise: Promise) {
     Thread {
       try {
-        mContexts.remove(id)?.free()
+        mContexts.remove(id.toLong())?.release()
         promise.resolve(null)
       } catch (e: Exception) {
-        promise.reject(e)
+        promise.reject("E_FREE", e.message, e)
       }
     }.start()
   }
 
   @ReactMethod
-  fun process(id: Long, input: String, promise: Promise) {
+  override fun process(id: Double, input: String, promise: Promise) {
     Thread {
       try {
-        mContexts[id]?.process(input)
+        mContexts[id.toLong()]?.process(input)
         promise.resolve(null)
       } catch (e: Exception) {
-        promise.reject(e)
+        promise.reject("E_PROCESS", e.message, e)
       }
     }.start()
   }
 
   @ReactMethod
-  fun query(id: Long, input: String, promise: Promise) {
+  override fun query(id: Double, input: String, promise: Promise) {
     Thread {
       try {
-        val context = mContexts[id]
+        val context = mContexts[id.toLong()]
         if (context == null) {
           promise.reject(Exception("Context not found"))
         }
-        val profile = context.query(input, object : Context.Callback() {
+        val profile = context?.query(input, object : Context.Callback() {
           override fun onResponse(response: String, sentenceCode: Int) {
             val data = Arguments.createMap()
             data.putString("response", response)
             data.putInt("code", sentenceCode)
-            data.putInt("contextId", id)
+            data.putInt("contextId", id.toInt())
             fireEvent("onResponse", data)
           }
         })
         promise.resolve(profile)
       } catch (e: Exception) {
-        promise.reject(e)
+        promise.reject("E_QUERY", e.message, e)
       }
     }.start()
   }
 
   @ReactMethod
-  fun setStopWords(id: Long, stopWords: String, promise: Promise) {
+  override fun setStopWords(id: Double, stopWords: String, promise: Promise) {
     Thread {
       try {
-        mContexts[id]?.setStopWords(stopWords)
+        mContexts[id.toLong()]?.setStopWords(stopWords)
         promise.resolve(null)
       } catch (e: Exception) {
-        promise.reject(e)
+        promise.reject("E_SET_STOP_WORDS", e.message, e)
       }
     }.start()
   }
 
   @ReactMethod
-  fun applySamplerConfig(id: Long, config: String, promise: Promise) {
+  override fun applySamplerConfig(id: Double, config: String, promise: Promise) {
     Thread {
       try {
-        mContexts[id]?.applySamplerConfig(config)
+        mContexts[id.toLong()]?.applySamplerConfig(config)
         promise.resolve(null)
       } catch (e: Exception) {
-        promise.reject(e)
+        promise.reject("E_APPLY_SAMPLER_CONFIG", e.message, e)
       }
     }.start()
   }
 
   @ReactMethod
-  fun saveSession(id: Long, filename: String, promise: Promise) {
+  override fun saveSession(id: Double, filename: String, promise: Promise) {
     Thread {
       try {
-        mContexts[id]?.saveSession(filename)
+        mContexts[id.toLong()]?.saveSession(filename)
         promise.resolve(null)
       } catch (e: Exception) {
-        promise.reject(e)
+        promise.reject("E_SAVE_SESSION", e.message, e)
       }
     }.start()
   }
 
   @ReactMethod
-  fun restoreSession(id: Long, filename: String, promise: Promise) {
+  override fun restoreSession(id: Double, filename: String, promise: Promise) {
     Thread {
       try {
-        mContexts[id]?.restoreSession(filename)
+        mContexts[id.toLong()]?.restoreSession(filename)
         promise.resolve(null)
       } catch (e: Exception) {
-        promise.reject(e)
+        promise.reject("E_RESTORE_SESSION", e.message, e)
       }
     }.start()
   }
 
   @ReactMethod
-  fun abort(id: Long, promise: Promise) {
+  override fun abort(id: Double, promise: Promise) {
     Thread {
       try {
-        mContexts[id]?.abort()
+        mContexts[id.toLong()]?.abort()
         promise.resolve(null)
       } catch (e: Exception) {
-        promise.reject(e)
+        promise.reject("E_ABORT", e.message, e)
       }
     }.start()
   }
 
   @ReactMethod
-  fun addListener(type: String?) {}
+  fun addListener(type: String) {}
 
   @ReactMethod
-  fun removeListeners(type: Int?) {}
+  fun removeListeners(count: Int) {}
 
   private fun fireEvent(eventName: String, data: WritableMap) {
     reactApplicationContext.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
