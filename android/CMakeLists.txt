@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.4.1)
-project(BricksQnnLlm)
+project(QnnLlm)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_CXX_STANDARD 17)
@@ -15,16 +15,20 @@ include_directories(
 
 file(GLOB_RECURSE SRC_FILES "../cpp/*.cpp" "cpp-adapter.cpp")
 
+if (NOT QNN_SDK_ROOT)
+  message(WARNING "QNN_SDK_ROOT is not set, not building QNN LLM")
+endif()
+
 if (CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a" AND QNN_SDK_ROOT)
-  add_library(bricks-qnn-llm SHARED ${SRC_FILES})
+  add_library(qnn-llm SHARED ${SRC_FILES})
 
   set(QNN_LIB_DIR ${QNN_SDK_ROOT}/lib)
   set(QNN_PLAT_LIB_DIR ${QNN_LIB_DIR}/aarch64-android)
 
-  target_include_directories(bricks-qnn-llm PRIVATE ../cpp)
+  target_include_directories(qnn-llm PRIVATE ../cpp)
 
   target_link_libraries(
-    bricks-qnn-llm
+    qnn-llm
     ${QNN_PLAT_LIB_DIR}/libGenie.so
     log
   )
@@ -42,8 +46,8 @@ if (CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a" AND QNN_SDK_ROOT)
   # concatenate two lists
   list(APPEND QNN_LIBS ${QNN_PLAT_LIBS})
 
-  add_custom_command(TARGET bricks-qnn-llm POST_BUILD
+  add_custom_command(TARGET qnn-llm POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     ${QNN_LIBS}
-    $<TARGET_FILE_DIR:bricks-qnn-llm>)
+    $<TARGET_FILE_DIR:qnn-llm>)
 endif()

@@ -1,4 +1,4 @@
-package com.bricksqnnllm
+package com.qnnllm
 
 object Constants {
   const val HTP_CONFIG =

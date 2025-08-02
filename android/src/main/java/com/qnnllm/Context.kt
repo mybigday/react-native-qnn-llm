@@ -1,4 +1,4 @@
-package com.bricksqnnllm
+package com.qnnllm
 
 import android.os.Build
 import android.util.Log
@@ -24,12 +24,12 @@ class Context constructor(libPath: String, config: String) {
 
   init {
     if (!Build.SUPPORTED_ABIS.contains("arm64-v8a")) {
-      Log.e("BricksQnnLlm", "Not supported for ${Build.SUPPORTED_ABIS}")
+      Log.e("QnnLlm", "Not supported for ${Build.SUPPORTED_ABIS}")
       throw RuntimeException("QNN LLM is not supported on this device")
     } else {
-      System.loadLibrary("bricks-qnn-llm")
+      System.loadLibrary("qnn-llm")
     }
-    Log.i("BricksQnnLlm", "API Version: v${getVersion()}")
+    Log.i("QnnLlm", "API Version: v${getVersion()}")
     this.mContextPtr = create(libPath, config)
   }
 
