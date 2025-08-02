@@ -71,7 +71,7 @@ android {
 
     externalNativeBuild {
       cmake {
-        cppFlags "-O2 -frtti -fexceptions -Wall -fstack-protector-all"
+        cppFlags "-O2 -frtti -fexceptions -Wall -fstack-protector-strong"
         if (isQnnSdkLibEnabled()) {
           arguments "-DUSE_QNN_SDK_LIB=ON"
         }
