@@ -35,6 +35,17 @@ await context.apply_sampler_config({
 await context.release();
 ```
 
+## Bundled File
+
+To easier to deploy model, we announced packed file struct.
+
+- Constant entry config path.
+- Auto resolve file path.
+- Patch config on load.
+
+You can quickly pack your model files use [pack.py](https://github.com/mybigday/node-qnn-llm/blob/main/pack.py).
+
+Usage: `pack.py path/to/config.json`
 
 ## Contributing
 
@@ -47,3 +58,14 @@ MIT
 ---
 
 Made with [create-react-native-library](https://github.com/callstack/react-native-builder-bob)
+
+---
+
+<p align="center">
+  <a href="https://bricks.tools">
+    <img width="90px" src="https://avatars.githubusercontent.com/u/17320237?s=200&v=4">
+  </a>
+  <p align="center">
+    Built and maintained by <a href="https://bricks.tools">BRICKS</a>.
+  </p>
+</p>
