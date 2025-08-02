@@ -22,15 +22,33 @@ endif()
 if (CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a" AND QNN_SDK_ROOT)
   add_library(qnn-llm SHARED ${SRC_FILES})
 
+  include(FetchContent)
+
+  find_package(ZLIB REQUIRED)
+
+  set(ZSTD_BUILD_STATIC ON)
+  set(ZSTD_BUILD_SHARED OFF)
+  set(ZSTD_BUILD_EXAMPLES OFF)
+  set(ZSTD_BUILD_TESTS OFF)
+
+  FetchContent_Declare(
+    zstd
+    URL https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-1.5.7.tar.gz
+  )
+  FetchContent_MakeAvailable(zstd)
+  add_subdirectory(${zstd_SOURCE_DIR}/build/cmake)
+
   set(QNN_LIB_DIR ${QNN_SDK_ROOT}/lib)
   set(QNN_PLAT_LIB_DIR ${QNN_LIB_DIR}/aarch64-android)
 
-  target_include_directories(qnn-llm PRIVATE ../cpp)
+  target_include_directories(qnn-llm PRIVATE ../cpp ${ZLIB_INCLUDE_DIRS})
 
   target_link_libraries(
     qnn-llm
     ${QNN_PLAT_LIB_DIR}/libGenie.so
     log
+    ZLIB::ZLIB
+    libzstd_static
   )
 
   file(GLOB QNN_PLAT_LIBS

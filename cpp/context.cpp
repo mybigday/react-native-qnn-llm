@@ -77,17 +77,17 @@ Context::~Context() {
   }
   if (handle != NULL) {
     if (GenieDialog_free(handle) != GENIE_STATUS_SUCCESS) {
-      LOG_ERROR("Failed to free GenieDialog handle");
+      LOGE("Failed to free GenieDialog handle");
     }
   }
   if (configHandle != NULL) {
     if (GenieDialogConfig_free(configHandle) != GENIE_STATUS_SUCCESS) {
-      LOG_ERROR("Failed to free GenieDialogConfig handle");
+      LOGE("Failed to free GenieDialogConfig handle");
     }
   }
   if (profileHandle != NULL) {
     if (GenieProfile_free(profileHandle) != GENIE_STATUS_SUCCESS) {
-      LOG_ERROR("Failed to free GenieProfile handle");
+      LOGE("Failed to free GenieProfile handle");
     }
   }
 }
@@ -158,7 +158,7 @@ void Context::process(std::string prompt) {
   if (!last_context_data.empty()) {
     sentenceCode = GENIE_DIALOG_SENTENCE_REWIND;
   }
-  busying = true;
+  busy = true;
   status = GenieDialog_query(handle, query.c_str(), sentenceCode, process_callback, this);
   if (status != GENIE_STATUS_SUCCESS && status != GENIE_STATUS_WARNING_ABORTED) {
     // retry normal query
@@ -172,7 +172,7 @@ void Context::process(std::string prompt) {
     }
     status = GenieDialog_query(handle, query.c_str(), sentenceCode, process_callback, this);
   }
-  busying = false;
+  busy = false;
   if (status != GENIE_STATUS_SUCCESS && status != GENIE_STATUS_WARNING_ABORTED) {
     throw std::runtime_error(genie_status_to_string(status));
   }
@@ -246,7 +246,7 @@ void Context::on_response(const char *response, const GenieDialog_SentenceCode_t
     sentenceCode == GENIE_DIALOG_SENTENCE_END ||
     sentenceCode == GENIE_DIALOG_SENTENCE_ABORT
   ) {
-    LOG_INFO("Response complete");
+    LOGI("Response complete");
     self->callback = nullptr;
   }
 }

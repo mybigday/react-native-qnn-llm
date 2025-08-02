@@ -22,9 +22,9 @@ extern "C" JNIEXPORT jlong JNICALL Java_com_qnnllm_Context_create(JNIEnv *env, j
   env->ReleaseStringUTFChars(lib_path, lib_path_str);
   LOGI("QNN libGenie version: %s", qnnllm::Context::version().c_str());
   const char *config_str = env->GetStringUTFChars(jconfig, nullptr);
-  Context *ctx = NULL;
+  qnnllm::Context *ctx = NULL;
   try {
-    ctx = new Context(config_str);
+    ctx = new qnnllm::Context(config_str);
     env->ReleaseStringUTFChars(jconfig, config_str);
     return (jlong)ctx;
   } catch (const std::runtime_error &e) {
@@ -60,7 +60,7 @@ extern "C" JNIEXPORT jstring JNICALL Java_com_qnnllm_Context_unpack(JNIEnv *env,
 extern "C" JNIEXPORT void JNICALL Java_com_qnnllm_Context_free(JNIEnv *env, jclass jthiz,
                                                                      jlong jcontext) {
   try {
-    delete (Context *)jcontext;
+    delete (qnnllm::Context *)jcontext;
   } catch (const std::runtime_error &e) {
     env->ThrowNew(env->FindClass("java/lang/Exception"), e.what());
   }
@@ -72,7 +72,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_qnnllm_Context_process(JNIEnv *env, j
                                                                      jstring jinput) {
   const char *input_str = env->GetStringUTFChars(jinput, nullptr);
   try {
-    ((Context *)jcontext)->process(input_str);
+    ((qnnllm::Context *)jcontext)->process(input_str);
   } catch (const std::runtime_error &e) {
     env->ReleaseStringUTFChars(jinput, input_str);
     env->ThrowNew(env->FindClass("java/lang/Exception"), e.what());
@@ -90,7 +90,7 @@ extern "C" JNIEXPORT jstring JNICALL Java_com_qnnllm_Context_query(JNIEnv *env, 
   env->ReleaseStringUTFChars(jinput, input);
   jweak weak_callback = env->NewWeakGlobalRef(jcallback);
   try {
-    auto profile = ((Context *)jcontext)->query(input_str, [env, weak_callback](
+    auto profile = ((qnnllm::Context *)jcontext)->query(input_str, [env, weak_callback](
       const char *response, const GenieDialog_SentenceCode_t sentenceCode) {
       jclass callback_class = env->GetObjectClass(weak_callback);
       jmethodID on_response_method = env->GetMethodID(callback_class, "onResponse", "(Ljava/lang/String;I)V");
@@ -112,7 +112,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_qnnllm_Context_setStopWords(JNIEnv *e
                                                                              jstring jstop_words) {
   const char *stop_words_str = env->GetStringUTFChars(jstop_words, nullptr);
   try {
-    ((Context *)jcontext)->setStopWords(stop_words_str);
+    ((qnnllm::Context *)jcontext)->setStopWords(stop_words_str);
     env->ReleaseStringUTFChars(jstop_words, stop_words_str);
   } catch (const std::runtime_error &e) {
     env->ReleaseStringUTFChars(jstop_words, stop_words_str);
@@ -125,7 +125,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_qnnllm_Context_applySamplerConfig(
     JNIEnv *env, jclass jthiz, jlong jcontext, jstring jconfig) {
   const char *config_str = env->GetStringUTFChars(jconfig, nullptr);
   try {
-    ((Context *)jcontext)->applySamplerConfig(config_str);
+    ((qnnllm::Context *)jcontext)->applySamplerConfig(config_str);
     env->ReleaseStringUTFChars(jconfig, config_str);
   } catch (const std::runtime_error &e) {
     env->ReleaseStringUTFChars(jconfig, config_str);
@@ -140,7 +140,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_qnnllm_Context_saveSession(JNIEnv *en
                                                                             jstring jfilename) {
   const char *filename_str = env->GetStringUTFChars(jfilename, nullptr);
   try {
-    ((Context *)jcontext)->saveSession(filename_str);
+    ((qnnllm::Context *)jcontext)->saveSession(filename_str);
     env->ReleaseStringUTFChars(jfilename, filename_str);
   } catch (const std::runtime_error &e) {
     env->ReleaseStringUTFChars(jfilename, filename_str);
@@ -155,7 +155,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_qnnllm_Context_restoreSession(JNIEnv 
                                                                                jstring jfilename) {
   const char *filename_str = env->GetStringUTFChars(jfilename, nullptr);
   try {
-    ((Context *)jcontext)->restoreSession(filename_str);
+    ((qnnllm::Context *)jcontext)->restoreSession(filename_str);
     env->ReleaseStringUTFChars(jfilename, filename_str);
   } catch (const std::runtime_error &e) {
     env->ReleaseStringUTFChars(jfilename, filename_str);
@@ -167,7 +167,7 @@ extern "C" JNIEXPORT void JNICALL Java_com_qnnllm_Context_restoreSession(JNIEnv 
 extern "C" JNIEXPORT void JNICALL Java_com_qnnllm_Context_abort(JNIEnv *env, jclass jthiz,
                                                                       jlong jcontext) {
   try {
-    ((Context *)jcontext)->abort();
+    ((qnnllm::Context *)jcontext)->abort();
   } catch (const std::runtime_error &e) {
     env->ThrowNew(env->FindClass("java/lang/Exception"), e.what());
   }
