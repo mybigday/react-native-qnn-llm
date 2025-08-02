@@ -8,8 +8,13 @@ Qualcomm lib Genie binding for React Native
 npm install react-native-qnn-llm
 ```
 
-## Usage
+### Add proguard
 
+```diff
++ -keep class com.qnnllm.** { *; }
+```
+
+## Usage
 
 ```js
 import { Context, SentenceCode } from 'react-native-qnn-llm';
