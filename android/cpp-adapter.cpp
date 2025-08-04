@@ -34,8 +34,8 @@ extern "C" JNIEXPORT jlong JNICALL Java_com_qnnllm_Context_create(JNIEnv *env, j
   }
 }
 
-// Context::unpack(bundlePath: String, unpackDir: String): String
-extern "C" JNIEXPORT jstring JNICALL Java_com_qnnllm_Context_unpack(JNIEnv *env, jclass jthiz,
+// Context::nativeUnpack(bundlePath: String, unpackDir: String): String
+extern "C" JNIEXPORT jstring JNICALL Java_com_qnnllm_Context_nativeUnpack(JNIEnv *env, jclass cls,
                                                                      jstring jbundle_path,
                                                                      jstring junpack_dir) {
   const char *bundle_path_str = env->GetStringUTFChars(jbundle_path, nullptr);

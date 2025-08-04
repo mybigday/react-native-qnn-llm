@@ -21,6 +21,10 @@ if (NOT QNN_SDK_ROOT)
   message(WARNING "QNN_SDK_ROOT is not set, not building QNN LLM")
 endif()
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  add_definitions(-DQNN_LOG_LEVEL=GENIE_LOG_LEVEL_VERBOSE)
+endif()
+
 if (CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a" AND QNN_SDK_ROOT)
   add_library(qnn-llm SHARED ${SRC_FILES})
 

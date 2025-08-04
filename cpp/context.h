@@ -8,6 +8,10 @@
 #include <cstdlib>
 #include <functional>
 
+#ifndef QNN_LOG_LEVEL
+#define QNN_LOG_LEVEL GENIE_LOG_LEVEL_INFO
+#endif
+
 namespace qnnllm {
 
 const char *genie_status_to_string(int status);
@@ -46,6 +50,7 @@ private:
   GenieDialog_Handle_t handle = NULL;
   GenieDialogConfig_Handle_t configHandle = NULL;
   GenieProfile_Handle_t profileHandle = NULL;
+  GenieLog_Handle_t logHandle = NULL;
   std::string last_context_data;
   std::atomic<bool> busy;
   Callback callback;

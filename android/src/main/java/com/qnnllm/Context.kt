@@ -13,7 +13,6 @@ class Context constructor(context: AndroidContext, config: String) {
   }
 
   external fun create(libPath: String, config: String): Long
-  external fun unpack(bundlePath: String, unpackDir: String): String
   external fun free(contextPtr: Long)
   external fun process(contextPtr: Long, input: String)
   external fun query(contextPtr: Long, input: String, callback: Callback): String
@@ -28,6 +27,10 @@ class Context constructor(context: AndroidContext, config: String) {
   }
 
   companion object {
+    @JvmStatic
+    external fun nativeUnpack(bundlePath: String, unpackDir: String): String
+
+    @JvmStatic
     fun load() {
       if (!Build.SUPPORTED_ABIS.contains("arm64-v8a")) {
         Log.e("QnnLlm", "Not supported for ${Build.SUPPORTED_ABIS}")
@@ -37,14 +40,16 @@ class Context constructor(context: AndroidContext, config: String) {
       }
     }
 
+    @JvmStatic
     fun create(context: AndroidContext, config: String): Context {
       load()
       return Context(context, config)
     }
 
+    @JvmStatic
     fun unpack(bundlePath: String, unpackDir: String): String {
       load()
-      return unpack(bundlePath, unpackDir)
+      return nativeUnpack(bundlePath, unpackDir)
     }
   }
 

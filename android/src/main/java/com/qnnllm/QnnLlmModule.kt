@@ -49,8 +49,7 @@ class QnnLlmModule internal constructor(context: ReactApplicationContext) :
   override fun unpack(bundlePath: String, unpackDir: String, promise: Promise) {
     Thread {
       try {
-        Context.unpack(bundlePath, unpackDir)
-        promise.resolve(null)
+        promise.resolve(Context.unpack(bundlePath, unpackDir))
       } catch (e: Exception) {
         promise.reject("E_UNPACK", e.message, e)
       }

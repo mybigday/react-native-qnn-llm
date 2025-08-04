@@ -44,8 +44,20 @@ const char *genie_status_to_string(int status) {
   
 void alloc_json_data(size_t size, const char **data) { *data = (char *)malloc(size); }
 
+void logStdoutCallback(GenieLog_Handle_t handle, const char* fmt, GenieLog_Level_t level, uint64_t timestamp, va_list argp) {
+  char buffer[1024];
+  vsnprintf(buffer, sizeof(buffer), fmt, argp);
+  switch (level) {
+    case GENIE_LOG_LEVEL_ERROR: LOGE("%s", buffer); break;
+    case GENIE_LOG_LEVEL_WARN: LOGW("%s", buffer); break;
+    case GENIE_LOG_LEVEL_INFO: LOGI("%s", buffer); break;
+    case GENIE_LOG_LEVEL_VERBOSE: LOGD("%s", buffer); break;
+  }
+}
+
 Context::Context(const char *config_str) {
   Genie_Status_t status;
+  GenieLog_create((GenieLogConfig_Handle_t)NULL, logStdoutCallback, QNN_LOG_LEVEL, &logHandle);
   status = GenieProfile_create(NULL, &profileHandle);
   if (status != GENIE_STATUS_SUCCESS) {
     throw std::runtime_error(genie_status_to_string(status));
@@ -88,6 +100,11 @@ Context::~Context() {
   if (profileHandle != NULL) {
     if (GenieProfile_free(profileHandle) != GENIE_STATUS_SUCCESS) {
       LOGE("Failed to free GenieProfile handle");
+    }
+  }
+  if (logHandle != NULL) {
+    if (GenieLog_free(logHandle) != GENIE_STATUS_SUCCESS) {
+      LOGE("Failed to free GenieLog handle");
     }
   }
 }
