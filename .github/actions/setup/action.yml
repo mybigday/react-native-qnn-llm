@@ -34,3 +34,8 @@ runs:
           **/node_modules
           .yarn/install-state.gz
         key: ${{ steps.yarn-cache.outputs.cache-primary-key }}
+
+    - name: Setup QNN SDK
+      uses: mybigday/setup-qnn-sdk@main
+      with:
+        qnn-sdk-version: 2.32.0.250228
