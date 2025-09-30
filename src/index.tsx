@@ -9,9 +9,10 @@ const LINKING_ERROR =
 // @ts-expect-error
 const isTurboModuleEnabled = global.__turboModuleProxy != null;
 
-const QnnLlmModule = isTurboModuleEnabled
-  ? require('./NativeQnnLlm').default
-  : NativeModules.QnnLlm;
+const QnnLlmModule =
+  isTurboModuleEnabled && Platform.OS === 'android'
+    ? require('./NativeQnnLlm').default
+    : NativeModules.QnnLlm;
 
 const QnnLlm = QnnLlmModule
   ? QnnLlmModule
@@ -177,15 +178,13 @@ export class Context {
     input: string,
     callback: (response: string, sentenceCode: SentenceCode) => void
   ): Promise<object> {
-    const listener = eventEmitter!.addListener(
-      'response',
-      ({ response, sentenceCode, contextId }: ResponseEvent) => {
-        if (contextId !== this._id) {
-          return;
-        }
-        callback(response, sentenceCode);
+    const listener = eventEmitter!.addListener('response', (event) => {
+      const { response, sentenceCode, contextId } = event as ResponseEvent;
+      if (contextId !== this._id) {
+        return;
       }
-    );
+      callback(response, sentenceCode);
+    });
     try {
       return JSON.parse(await QnnLlm.query(this._id, input));
     } catch (error) {
