@@ -2,9 +2,9 @@ import type { TurboModule } from 'react-native';
 import { TurboModuleRegistry } from 'react-native';
 
 export interface Spec extends TurboModule {
-  create(config: string): Promise<number>;
+  createContext(config: string): Promise<number>;
   unpack(bundlePath: string, unpackDir: string): Promise<string>;
-  free(context: number): Promise<void>;
+  freeContext(context: number): Promise<void>;
   process(context: number, input: string): Promise<void>;
   query(context: number, input: string): Promise<string>;
   setStopWords(context: number, stopWords: string): Promise<void>;

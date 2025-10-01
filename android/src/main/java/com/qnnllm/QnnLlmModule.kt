@@ -1,7 +1,7 @@
 package com.qnnllm
 
 import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.bridge.ReactMethod
+import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.WritableMap
@@ -10,8 +10,9 @@ import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.util.concurrent.atomic.AtomicLong
 import java.io.File
 
-class QnnLlmModule internal constructor(context: ReactApplicationContext) :
-  QnnLlmSpec(context) {
+@ReactModule(name = QnnLlmModule.NAME)
+class QnnLlmModule(reactContext: ReactApplicationContext) :
+  NativeQnnLlmSpec(reactContext) {
 
   override fun getName(): String {
     return NAME
@@ -31,8 +32,7 @@ class QnnLlmModule internal constructor(context: ReactApplicationContext) :
     configFile.deleteOnExit()
   }
 
-  @ReactMethod
-  override fun create(config: String, promise: Promise) {
+  override fun createContext(config: String, promise: Promise) {
     Thread {
       try {
         val context = Context(reactApplicationContext, config)
@@ -45,7 +45,6 @@ class QnnLlmModule internal constructor(context: ReactApplicationContext) :
     }.start()
   }
 
-  @ReactMethod
   override fun unpack(bundlePath: String, unpackDir: String, promise: Promise) {
     Thread {
       try {
@@ -56,8 +55,7 @@ class QnnLlmModule internal constructor(context: ReactApplicationContext) :
     }.start()
   }
 
-  @ReactMethod
-  override fun free(id: Double, promise: Promise) {
+  override fun freeContext(id: Double, promise: Promise) {
     Thread {
       try {
         mContexts.remove(id.toLong())?.release()
@@ -68,7 +66,6 @@ class QnnLlmModule internal constructor(context: ReactApplicationContext) :
     }.start()
   }
 
-  @ReactMethod
   override fun process(id: Double, input: String, promise: Promise) {
     Thread {
       try {
@@ -80,7 +77,6 @@ class QnnLlmModule internal constructor(context: ReactApplicationContext) :
     }.start()
   }
 
-  @ReactMethod
   override fun query(id: Double, input: String, promise: Promise) {
     Thread {
       try {
@@ -104,7 +100,6 @@ class QnnLlmModule internal constructor(context: ReactApplicationContext) :
     }.start()
   }
 
-  @ReactMethod
   override fun setStopWords(id: Double, stopWords: String, promise: Promise) {
     Thread {
       try {
@@ -116,7 +111,6 @@ class QnnLlmModule internal constructor(context: ReactApplicationContext) :
     }.start()
   }
 
-  @ReactMethod
   override fun applySamplerConfig(id: Double, config: String, promise: Promise) {
     Thread {
       try {
@@ -128,7 +122,6 @@ class QnnLlmModule internal constructor(context: ReactApplicationContext) :
     }.start()
   }
 
-  @ReactMethod
   override fun saveSession(id: Double, filename: String, promise: Promise) {
     Thread {
       try {
@@ -140,7 +133,6 @@ class QnnLlmModule internal constructor(context: ReactApplicationContext) :
     }.start()
   }
 
-  @ReactMethod
   override fun restoreSession(id: Double, filename: String, promise: Promise) {
     Thread {
       try {
@@ -152,7 +144,6 @@ class QnnLlmModule internal constructor(context: ReactApplicationContext) :
     }.start()
   }
 
-  @ReactMethod
   override fun abort(id: Double, promise: Promise) {
     Thread {
       try {
@@ -164,10 +155,8 @@ class QnnLlmModule internal constructor(context: ReactApplicationContext) :
     }.start()
   }
 
-  @ReactMethod
   fun addListener(type: String) {}
 
-  @ReactMethod
   fun removeListeners(count: Int) {}
 
   private fun fireEvent(eventName: String, data: WritableMap) {
