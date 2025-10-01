@@ -1,6 +1,6 @@
 {
   "name": "react-native-qnn-llm",
-  "version": "0.1.0-beta.1",
+  "version": "0.2.0-beta",
   "description": "Qualcomm lib Genie binding for React Native",
   "main": "./lib/module/index.js",
   "types": "./lib/typescript/src/index.d.ts",
