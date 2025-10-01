@@ -116,7 +116,7 @@ export class Context {
    * @returns The context.
    */
   static async create(config: ContextConfig): Promise<Context> {
-    const context = await QnnLlm.create(JSON.stringify(config));
+    const context = await QnnLlm.createContext(JSON.stringify(config));
     return new Context(context);
   }
 
@@ -240,6 +240,6 @@ export class Context {
    * Release the context.
    */
   release(): Promise<void> {
-    return QnnLlm.free(this._id);
+    return QnnLlm.freeContext(this._id);
   }
 }

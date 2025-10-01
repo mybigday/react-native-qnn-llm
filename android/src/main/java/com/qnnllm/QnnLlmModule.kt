@@ -32,7 +32,7 @@ class QnnLlmModule(reactContext: ReactApplicationContext) :
     configFile.deleteOnExit()
   }
 
-  override fun create(config: String, promise: Promise) {
+  override fun createContext(config: String, promise: Promise) {
     Thread {
       try {
         val context = Context(reactApplicationContext, config)
@@ -55,7 +55,7 @@ class QnnLlmModule(reactContext: ReactApplicationContext) :
     }.start()
   }
 
-  override fun free(id: Double, promise: Promise) {
+  override fun freeContext(id: Double, promise: Promise) {
     Thread {
       try {
         mContexts.remove(id.toLong())?.release()
