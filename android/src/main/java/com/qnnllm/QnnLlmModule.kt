@@ -111,7 +111,6 @@ class QnnLlmModule(reactContext: ReactApplicationContext) :
     }.start()
   }
 
-  @ReactMethod
   override fun applySamplerConfig(id: Double, config: String, promise: Promise) {
     Thread {
       try {
