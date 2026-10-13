@@ -1,4 +1,21 @@
 import { NativeModules, Platform, NativeEventEmitter } from 'react-native';
+import type { NativeQueryParams } from './NativeQnnLlm';
+import type {
+  ContextConfig,
+  CreateOptions,
+  DialogType,
+  QueryParams,
+  QueryResult,
+} from './types';
+import {
+  configDefaults,
+  preProcessConfig,
+  resolveQueryParams,
+  selectDialogType,
+  toQueryResult,
+} from './utils';
+
+export * from './types';
 
 const LINKING_ERROR =
   `The package 'react-native-qnn-llm' doesn't seem to be linked. Make sure: \n\n` +
@@ -41,83 +58,35 @@ interface ResponseEvent {
   contextId: number;
 }
 
-const join = (...paths: string[]) => paths.join('/');
-
 export const getHtpConfigFilePath = () => QnnLlm.HTP_CONFIG_FILE_PATH;
-
-export interface SamplerConfig {
-  'version': number;
-  'seed': number;
-  'temp': number;
-  'top-k': number;
-  'top-p': number;
-  'greedy': boolean;
-}
-
-/**
- * Context config.
- * @see https://docs.qualcomm.com/bundle/publicresource/topics/80-63442-100/json.html
- */
-export interface ContextConfig {
-  dialog: {
-    version: number;
-    type: 'basic';
-    context: {
-      version: number;
-      [key: string]: any;
-    };
-    sampler: {
-      version: number;
-      [key: string]: any;
-    };
-    tokenizer: {
-      version: number;
-      path: string;
-    };
-    engine: {
-      'version': number;
-      'n-threads': number;
-      'backend': {
-        type: 'QnnHtp' | 'QnnGenAiTransformer';
-        QnnHtp?: {
-          'use-mmap': boolean;
-          [key: string]: any;
-        };
-        QnnGenAiTransformer?: Record<string, any>;
-        extensions?: string;
-      };
-      'model': {
-        version: number;
-        type: 'binary' | 'library';
-        binary?: {
-          'version': number;
-          'ctx-bins': string[];
-        };
-        library?: {
-          'version': number;
-          'model-bin': string;
-        };
-        [key: string]: any;
-      };
-    };
-  };
-}
 
 export class Context {
   private _id: number;
+  private _defaults: NativeQueryParams;
 
-  private constructor(context: number) {
+  private constructor(context: number, defaults: NativeQueryParams) {
     this._id = context;
+    this._defaults = defaults;
   }
 
   /**
    * Create a context from a config.
    * @param config - The config to create the context.
+   * @param options - Create options.
    * @returns The context.
    */
-  static async create(config: ContextConfig): Promise<Context> {
-    const context = await QnnLlm.createContext(JSON.stringify(config));
-    return new Context(context);
+  static async create(
+    config: ContextConfig,
+    { dialog_type }: CreateOptions = {}
+  ): Promise<Context> {
+    const selected = selectDialogType(config, dialog_type);
+    const defaults = configDefaults(selected);
+    const context = await QnnLlm.createContext(
+      JSON.stringify(selected),
+      selected.dialog.type,
+      defaults
+    );
+    return new Context(context, defaults);
   }
 
   /**
@@ -125,39 +94,29 @@ export class Context {
    * @param bundle_path - The path to the bundled model.
    * @param unpack_dir - The path to store the unpacked model.
    * @param n_threads - The number of threads to use.
+   * @param dialog_type - Dialog type to use, see `CreateOptions`.
    * @returns The context.
    */
   static async load({
     bundle_path,
     unpack_dir,
     n_threads,
+    dialog_type,
   }: {
     bundle_path: string;
     unpack_dir: string;
     n_threads?: number;
+    dialog_type?: DialogType;
   }): Promise<Context> {
     const config = JSON.parse(await QnnLlm.unpack(bundle_path, unpack_dir));
-    if (config.dialog.engine.backend.type === 'QnnHtp') {
-      config.dialog.engine.backend.extensions = getHtpConfigFilePath();
-      config.dialog.engine.backend.QnnHtp['use-mmap'] =
-        Platform.OS !== 'windows';
-    }
-    config.dialog.tokenizer.path = join(
-      unpack_dir,
-      config.dialog.tokenizer.path
-    );
-    if (config.dialog.engine.model.type === 'binary') {
-      const bins = config.dialog.engine.model.binary['ctx-bins'];
-      config.dialog.engine.model.binary['ctx-bins'] = bins.map((bin: string) =>
-        join(unpack_dir, bin)
-      );
-    } else {
-      const bin = config.dialog.engine.library['model-bin'];
-      config.dialog.engine.library['model-bin'] = join(unpack_dir, bin);
-    }
-    if (n_threads && n_threads > 0)
-      config.dialog.engine['n-threads'] = n_threads;
-    return Context.create(config);
+    if (!config.dialog) throw new Error('Config is not a LLM dialog config');
+    await preProcessConfig(config, unpack_dir, {
+      n_threads,
+      htpConfigFilePath: getHtpConfigFilePath(),
+      exists: (path) => QnnLlm.exists(path),
+      isWindows: Platform.OS === 'windows',
+    });
+    return Context.create(config, { dialog_type });
   }
 
   /**
@@ -170,47 +129,31 @@ export class Context {
 
   /**
    * Make a completion request.
-   * @param input - The input to query.
-   * @param callback - The callback to call when the response is received.
-   * @returns Performance profile.
+   * Params other than `prompt` are per query: when omitted they fall back to
+   * the value from the Genie config, not to what a previous query used.
+   * @param params - The query params.
+   * @param callback - Called with each piece of the response.
+   * @returns The result with generation stats.
    */
   async query(
-    input: string,
-    callback: (response: string, sentenceCode: SentenceCode) => void
-  ): Promise<object> {
-    const listener = eventEmitter!.addListener('response', (event) => {
-      const { response, sentenceCode, contextId } = event as ResponseEvent;
-      if (contextId !== this._id) {
-        return;
-      }
-      callback(response, sentenceCode);
-    });
+    params: QueryParams,
+    callback?: (response: string, sentenceCode: SentenceCode) => void
+  ): Promise<QueryResult> {
+    const resolved = resolveQueryParams(params, this._defaults);
+    const listener = callback
+      ? eventEmitter!.addListener('onResponse', (event) => {
+          const { response, sentenceCode, contextId } = event as ResponseEvent;
+          if (contextId !== this._id) {
+            return;
+          }
+          callback(response, sentenceCode);
+        })
+      : null;
     try {
-      return JSON.parse(await QnnLlm.query(this._id, input));
-    } catch (error) {
-      throw error;
+      return toQueryResult(await QnnLlm.query(this._id, resolved));
     } finally {
-      listener.remove();
+      listener?.remove();
     }
-  }
-
-  /**
-   * Set the stop words.
-   * @param stopWords - The stop words to set.
-   */
-  set_stop_words(stopWords?: string[]): Promise<void> {
-    return QnnLlm.setStopWords(
-      this._id,
-      stopWords ? JSON.stringify({ 'stop-sequence': stopWords }) : '{}'
-    );
-  }
-
-  /**
-   * Apply the sampler config.
-   * @param config - The sampler config to apply.
-   */
-  apply_sampler_config(config: Partial<SamplerConfig>): Promise<void> {
-    return QnnLlm.applySamplerConfig(this._id, JSON.stringify(config));
   }
 
   /**
@@ -237,7 +180,54 @@ export class Context {
   }
 
   /**
-   * Release the context.
+   * How full the context window is (unitless, driver-reported).
+   */
+  get_context_occupancy(): Promise<number> {
+    return QnnLlm.getContextOccupancy(this._id);
+  }
+
+  /**
+   * Apply a LoRA adapter defined in the config.
+   * @param engine - The engine role, e.g. `primary`.
+   * @param lora_adapter_name - The adapter name.
+   */
+  apply_lora(engine: string, lora_adapter_name: string): Promise<void> {
+    return QnnLlm.applyLora(this._id, engine, lora_adapter_name);
+  }
+
+  /**
+   * Set LoRA strength.
+   * @param engine - The engine role, e.g. `primary`.
+   * @param strengths - Map of alpha tensor name to strength.
+   */
+  set_lora_strength(
+    engine: string,
+    strengths: Record<string, number>
+  ): Promise<void> {
+    return QnnLlm.setLoraStrength(this._id, engine, strengths);
+  }
+
+  /**
+   * Name of the LoRA adapter currently applied, or '' if none.
+   */
+  get_applied_lora_adapter(): Promise<string> {
+    return QnnLlm.getAppliedLoraAdapter(this._id);
+  }
+
+  /**
+   * Release the memory of a LoRA adapter.
+   * @param engine - The engine role, e.g. `primary`.
+   * @param lora_adapter_name - The adapter name.
+   */
+  release_lora_memory(
+    engine: string,
+    lora_adapter_name: string
+  ): Promise<void> {
+    return QnnLlm.releaseLoraMemory(this._id, engine, lora_adapter_name);
+  }
+
+  /**
+   * Release the context. A running query is aborted first.
    */
   release(): Promise<void> {
     return QnnLlm.freeContext(this._id);

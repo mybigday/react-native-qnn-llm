@@ -4,9 +4,11 @@ import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.module.annotations.ReactModule
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.ReadableMap
 import com.facebook.react.bridge.WritableMap
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.io.File
 
@@ -18,7 +20,7 @@ class QnnLlmModule(reactContext: ReactApplicationContext) :
     return NAME
   }
 
-  private val mContexts = mutableMapOf<Long, Context>()
+  private val mContexts = ConcurrentHashMap<Long, Context>()
   private val mContextId = AtomicLong(0)
 
   val mHtpConfigFilePath: String
@@ -32,13 +34,23 @@ class QnnLlmModule(reactContext: ReactApplicationContext) :
     configFile.deleteOnExit()
   }
 
-  override fun createContext(config: String, promise: Promise) {
+  override fun createContext(
+    config: String,
+    dialogType: String,
+    defaults: ReadableMap,
+    promise: Promise
+  ) {
     Thread {
       try {
-        val context = Context(reactApplicationContext, config)
+        val context = Context.create(
+          reactApplicationContext,
+          config,
+          dialogType,
+          QueryParams.fromMap(defaults)
+        )
         val id = mContextId.incrementAndGet()
         mContexts[id] = context
-        promise.resolve(id)
+        promise.resolve(id.toDouble())
       } catch (e: Exception) {
         promise.reject("E_CREATE_CONTEXT", e.message, e)
       }
@@ -55,6 +67,10 @@ class QnnLlmModule(reactContext: ReactApplicationContext) :
     }.start()
   }
 
+  override fun exists(path: String, promise: Promise) {
+    promise.resolve(File(path).exists())
+  }
+
   override fun freeContext(id: Double, promise: Promise) {
     Thread {
       try {
@@ -66,93 +82,83 @@ class QnnLlmModule(reactContext: ReactApplicationContext) :
     }.start()
   }
 
-  override fun process(id: Double, input: String, promise: Promise) {
-    Thread {
-      try {
-        mContexts[id.toLong()]?.process(input)
-        promise.resolve(null)
-      } catch (e: Exception) {
-        promise.reject("E_PROCESS", e.message, e)
-      }
-    }.start()
-  }
-
-  override fun query(id: Double, input: String, promise: Promise) {
+  // Runs `block` on a new thread with the context, rejecting if it's not found
+  private fun withContext(id: Double, code: String, promise: Promise, block: (Context) -> Any?) {
     Thread {
       try {
         val context = mContexts[id.toLong()]
         if (context == null) {
-          promise.reject(Exception("Context not found"))
+          promise.reject(code, "Context not found")
+          return@Thread
         }
-        val profile = context?.query(input, object : Context.Callback() {
-          override fun onResponse(response: String, sentenceCode: Int) {
-            val data = Arguments.createMap()
-            data.putString("response", response)
-            data.putInt("code", sentenceCode)
-            data.putInt("contextId", id.toInt())
-            fireEvent("onResponse", data)
-          }
-        })
-        promise.resolve(profile)
+        promise.resolve(block(context))
       } catch (e: Exception) {
-        promise.reject("E_QUERY", e.message, e)
+        promise.reject(code, e.message, e)
       }
     }.start()
   }
 
-  override fun setStopWords(id: Double, stopWords: String, promise: Promise) {
-    Thread {
-      try {
-        mContexts[id.toLong()]?.setStopWords(stopWords)
-        promise.resolve(null)
-      } catch (e: Exception) {
-        promise.reject("E_SET_STOP_WORDS", e.message, e)
-      }
-    }.start()
+  override fun process(id: Double, input: String, promise: Promise) {
+    withContext(id, "E_PROCESS", promise) { it.process(input); null }
   }
 
-  override fun applySamplerConfig(id: Double, config: String, promise: Promise) {
-    Thread {
-      try {
-        mContexts[id.toLong()]?.applySamplerConfig(config)
-        promise.resolve(null)
-      } catch (e: Exception) {
-        promise.reject("E_APPLY_SAMPLER_CONFIG", e.message, e)
+  override fun query(id: Double, params: ReadableMap, promise: Promise) {
+    withContext(id, "E_QUERY", promise) { context ->
+      val result = context.query(QueryParams.fromMap(params), object : Context.Callback() {
+        override fun onResponse(response: String?, sentenceCode: Int) {
+          val data = Arguments.createMap()
+          data.putString("response", response ?: "")
+          data.putInt("sentenceCode", sentenceCode)
+          data.putInt("contextId", id.toInt())
+          fireEvent("onResponse", data)
+        }
+      })
+      Arguments.createMap().apply {
+        putString("text", result.text)
+        putString("profile", result.profile)
+        putBoolean("interrupted", result.interrupted)
+        putDouble("numGenerated", result.numGenerated.toDouble())
       }
-    }.start()
+    }
   }
 
   override fun saveSession(id: Double, filename: String, promise: Promise) {
-    Thread {
-      try {
-        mContexts[id.toLong()]?.saveSession(filename)
-        promise.resolve(null)
-      } catch (e: Exception) {
-        promise.reject("E_SAVE_SESSION", e.message, e)
-      }
-    }.start()
+    withContext(id, "E_SAVE_SESSION", promise) { it.saveSession(filename); null }
   }
 
   override fun restoreSession(id: Double, filename: String, promise: Promise) {
-    Thread {
-      try {
-        mContexts[id.toLong()]?.restoreSession(filename)
-        promise.resolve(null)
-      } catch (e: Exception) {
-        promise.reject("E_RESTORE_SESSION", e.message, e)
-      }
-    }.start()
+    withContext(id, "E_RESTORE_SESSION", promise) { it.restoreSession(filename); null }
   }
 
   override fun abort(id: Double, promise: Promise) {
-    Thread {
-      try {
-        mContexts[id.toLong()]?.abort()
-        promise.resolve(null)
-      } catch (e: Exception) {
-        promise.reject("E_ABORT", e.message, e)
-      }
-    }.start()
+    withContext(id, "E_ABORT", promise) { it.abort(); null }
+  }
+
+  override fun applyLora(id: Double, engine: String, loraAdapterName: String, promise: Promise) {
+    withContext(id, "E_APPLY_LORA", promise) { it.applyLora(engine, loraAdapterName); null }
+  }
+
+  override fun setLoraStrength(id: Double, engine: String, strengths: ReadableMap, promise: Promise) {
+    withContext(id, "E_SET_LORA_STRENGTH", promise) { context ->
+      val map = strengths.toHashMap().mapValues { (_, v) -> (v as Number).toFloat() }
+      context.setLoraStrength(engine, map)
+      null
+    }
+  }
+
+  override fun releaseLoraMemory(id: Double, engine: String, loraAdapterName: String, promise: Promise) {
+    withContext(id, "E_RELEASE_LORA_MEMORY", promise) {
+      it.releaseLoraMemory(engine, loraAdapterName)
+      null
+    }
+  }
+
+  override fun getContextOccupancy(id: Double, promise: Promise) {
+    withContext(id, "E_GET_CONTEXT_OCCUPANCY", promise) { it.getContextOccupancy().toDouble() }
+  }
+
+  override fun getAppliedLoraAdapter(id: Double, promise: Promise) {
+    withContext(id, "E_GET_APPLIED_LORA_ADAPTER", promise) { it.getAppliedLoraAdapter() }
   }
 
   fun addListener(type: String) {}

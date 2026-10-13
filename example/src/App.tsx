@@ -8,6 +8,7 @@ export default function App() {
   const context = useRef<Context | null>(null);
   const [input, setInput] = useState('');
   const [result, setResult] = useState('');
+  const [stats, setStats] = useState('');
 
   const loadContext = useCallback(async () => {
     const [file] = await pick();
@@ -27,9 +28,17 @@ export default function App() {
   }, [input]);
 
   const query = useCallback(async () => {
-    await context.current?.query(input, (response) => {
-      setResult(response);
+    setResult('');
+    const res = await context.current?.query({ prompt: input }, (response) => {
+      setResult((prev) => prev + response);
     });
+    if (res) {
+      setResult(res.text);
+      setStats(
+        `${res.timings.predicted_n} tokens, ` +
+          `${res.timings.predicted_per_second.toFixed(1)} tok/s`
+      );
+    }
   }, [input]);
 
   return (
@@ -44,6 +53,7 @@ export default function App() {
       <Button title="Process" onPress={process} />
       <Button title="Query" onPress={query} />
       <Text>Result: {result}</Text>
+      <Text>{stats}</Text>
     </View>
   );
 }

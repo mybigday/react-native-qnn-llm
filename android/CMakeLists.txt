@@ -15,7 +15,7 @@ include_directories(
   ${QNN_SDK_ROOT}/include/QNN
 )
 
-file(GLOB_RECURSE SRC_FILES "../cpp/*.cpp" "cpp-adapter.cpp")
+file(GLOB_RECURSE SRC_FILES "../cpp/*.cpp" "cpp-adapter.cpp" "jni-utils.cpp")
 
 if (NOT QNN_SDK_ROOT)
   message(WARNING "QNN_SDK_ROOT is not set, not building QNN LLM")
@@ -78,11 +78,15 @@ if (CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a" AND QNN_SDK_ROOT)
       ${QNN_PLAT_LIB_DIR}/libQnnHtpV73Stub.so
       ${QNN_PLAT_LIB_DIR}/libQnnHtpV75Stub.so
       ${QNN_PLAT_LIB_DIR}/libQnnHtpV79Stub.so
+      ${QNN_PLAT_LIB_DIR}/libQnnHtpV81Stub.so
+      ${QNN_PLAT_LIB_DIR}/libQnnHtpV85Stub.so
       ${QNN_LIB_DIR}/hexagon-v68/unsigned/libQnnHtpV68Skel.so
       ${QNN_LIB_DIR}/hexagon-v69/unsigned/libQnnHtpV69Skel.so
       ${QNN_LIB_DIR}/hexagon-v73/unsigned/libQnnHtpV73Skel.so
       ${QNN_LIB_DIR}/hexagon-v75/unsigned/libQnnHtpV75Skel.so
       ${QNN_LIB_DIR}/hexagon-v79/unsigned/libQnnHtpV79Skel.so
+      ${QNN_LIB_DIR}/hexagon-v81/unsigned/libQnnHtpV81Skel.so
+      ${QNN_LIB_DIR}/hexagon-v85/unsigned/libQnnHtpV85Skel.so
     )
     list(APPEND QNN_LIBS ${QNN_HTP_LIBS})
   endif()

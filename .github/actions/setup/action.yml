@@ -38,4 +38,4 @@ runs:
     - name: Setup QNN SDK
       uses: mybigday/setup-qnn-sdk@main
       with:
-        qnn-sdk-version: 2.42.0.251225
+        qnn-sdk-version: 2.51.0.260929
